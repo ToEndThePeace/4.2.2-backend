@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const db = require("../data/connection");
+const { validateCar, validateCarID } = require("../middleware");
 
 router.get("/", (req, res) => {
   db("cars")
@@ -12,20 +13,11 @@ router.get("/", (req, res) => {
     });
 });
 
-router.get("/:id", (req, res) => {
-  const { id } = req.params;
-  db("cars")
-    .where({ id })
-    .first()
-    .then((car) => {
-      res.status(200).json(car);
-    })
-    .catch((err) => {
-      res.status(500).json({ message: "Could not find car" });
-    });
+router.get("/:id", validateCarID, (req, res) => {
+  res.status(200).json(req.car);
 });
 
-router.post("/", (req, res) => {
+router.post("/", validateCar, (req, res) => {
   const { body: newCar } = req;
   db("cars")
     .insert(newCar)
@@ -42,6 +34,32 @@ router.post("/", (req, res) => {
     })
     .catch((err) => {
       res.status(500).json({ message: "Car could not be saved" });
+    });
+});
+
+router.delete("/:id", validateCarID, (req, res) => {
+  const { id } = req.car;
+  db("cars")
+    .where({ id })
+    .del()
+    .then((count) => {
+      if (count > 0) res.status(204).end();
+      else res.status(404).json({ message: "Car could not be deleted" });
+    })
+    .catch((err) => {
+      res.status(500).json({ message: "Car could not be deleted" });
+    });
+});
+
+router.put("/:id", validateCarID, (req, res) => {
+  const { body: changes } = req;
+  const { id } = req.car;
+  db("cars")
+    .where({ id })
+    .update(changes)
+    .then((count) => {
+      if (count > 0) res.status(204).end();
+      else res.status(404).json({ message: "Car could not be updated" });
     });
 });
 
